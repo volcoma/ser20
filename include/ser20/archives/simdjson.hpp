@@ -579,6 +579,7 @@ public:
 
   void setNextName(const char* name) { itsNextName = name; }
 
+  //! Loads a value from the current node - small signed overload
   template <class T>
   inline void loadValue(T& val) requires(std::is_signed_v<T> &&
              sizeof(T) < sizeof(int64_t)) {
@@ -588,6 +589,7 @@ public:
     ++itsIteratorStack.back();
   }
 
+         //! Loads a value from the current node - small unsigned overload
   template <class T>
   inline void loadValue(T& val) requires(std::is_unsigned_v<T> &&
              sizeof(T) < sizeof(uint64_t) &&
@@ -598,48 +600,141 @@ public:
     ++itsIteratorStack.back();
   }
 
+         //! Loads a value from the current node - bool overload
   void loadValue(bool& val) {
     search();
     val = itsIteratorStack.back().value().get_bool().value();
     ++itsIteratorStack.back();
   }
-
+  //! Loads a value from the current node - int64 overload
   void loadValue(int64_t& val) {
     search();
     val = itsIteratorStack.back().value().get_int64().value();
     ++itsIteratorStack.back();
   }
-
+  //! Loads a value from the current node - uint64 overload
   void loadValue(uint64_t& val) {
     search();
     val = itsIteratorStack.back().value().get_uint64().value();
     ++itsIteratorStack.back();
   }
-
+  //! Loads a value from the current node - float overload
   void loadValue(float& val) {
     search();
     val = static_cast<float>(itsIteratorStack.back().value().get_double().value());
     ++itsIteratorStack.back();
   }
-
+  //! Loads a value from the current node - double overload
   void loadValue(double& val) {
     search();
     val = itsIteratorStack.back().value().get_double().value();
     ++itsIteratorStack.back();
   }
-
+  //! Loads a value from the current node - string overload
   void loadValue(std::string& val) {
     search();
     val = std::string(itsIteratorStack.back().value().get_string().value());
     ++itsIteratorStack.back();
   }
-
+  //! Loads a nullptr from the current node
   void loadValue(std::nullptr_t&) {
     search();
-    if (!itsIteratorStack.back().value().is_null()) {
-      throw ser20::Exception("Expected null value");
-    }
+    SER20_RAPIDJSON_ASSERT(itsIteratorStack.back().value().is_null());
     ++itsIteratorStack.back();
+  }
+
+  template <class T>
+  inline void loadValue(T& val) requires(!std::is_same_v<T, int64_t> &&
+             std::is_same_v<T, long long>) {
+    search();
+    val = itsIteratorStack.back().value().get_int64().value();
+    ++itsIteratorStack.back();
+  }
+  template <class T>
+  inline void
+  loadValue(T& val) requires(!std::is_same_v<T, uint64_t> &&
+             std::is_same_v<T, unsigned long long>) {
+    search();
+    val = itsIteratorStack.back().value().get_uint64().value();
+    ++itsIteratorStack.back();
+  }
+// Special cases to handle various flavors of long, which tend to conflict with
+// the int32_t or int64_t on various compiler/OS combinations.  MSVC doesn't
+// need any of this.
+#ifndef _MSC_VER
+private:
+  //! 32 bit signed long loading from current node
+  template <class T>
+  inline void loadLong(T& l) requires(sizeof(T) == sizeof(std::int32_t) &&
+             std::is_signed_v<T>) {
+    loadValue(reinterpret_cast<std::int32_t&>(l));
+  }
+
+         //! non 32 bit signed long loading from current node
+  template <class T>
+  inline void loadLong(T& l) requires(sizeof(T) == sizeof(std::int64_t) &&
+             std::is_signed_v<T>) {
+    loadValue(reinterpret_cast<std::int64_t&>(l));
+  }
+
+         //! 32 bit unsigned long loading from current node
+  template <class T>
+  inline void loadLong(T& lu) requires(sizeof(T) == sizeof(std::uint32_t) &&
+             !std::is_signed_v<T>) {
+    loadValue(reinterpret_cast<std::uint32_t&>(lu));
+  }
+
+         //! non 32 bit unsigned long loading from current node
+  template <class T>
+  inline void loadLong(T& lu) requires(sizeof(T) == sizeof(std::uint64_t) &&
+             !std::is_signed_v<T>) {
+    loadValue(reinterpret_cast<std::uint64_t&>(lu));
+  }
+
+public:
+  //! Serialize a long if it would not be caught otherwise
+  template <class T>
+  inline void loadValue(T& t) requires(std::is_same_v<T, long> &&
+             sizeof(T) >= sizeof(std::int64_t) &&
+             !std::is_same_v<T, std::int64_t>) {
+    loadLong(t);
+  }
+
+         //! Serialize an unsigned long if it would not be caught otherwise
+  template <class T>
+  inline void loadValue(T& t) requires(std::is_same_v<T, unsigned long> &&
+             sizeof(T) >= sizeof(std::uint64_t) &&
+             !std::is_same_v<T, std::uint64_t>) {
+    loadLong(t);
+  }
+#endif // _MSC_VER
+
+private:
+  //! Convert a string to a long long
+  void stringToNumber(std::string const& str, long long& val) {
+    val = std::stoll(str);
+  }
+  //! Convert a string to an unsigned long long
+  void stringToNumber(std::string const& str, unsigned long long& val) {
+    val = std::stoull(str);
+  }
+  //! Convert a string to a long double
+  void stringToNumber(std::string const& str, long double& val) {
+    val = std::stold(str);
+  }
+
+public:
+  //! Loads a value from the current node - long double and long long overloads
+  template <class T>
+  inline void loadValue(T& val) requires(
+        std::is_arithmetic_v<T> && !std::is_same_v<T, long> &&
+        !std::is_same_v<T, unsigned long> && !std::is_same_v<T, std::int64_t> &&
+        !std::is_same_v<T, std::uint64_t> && !std::is_same_v<T, long long> &&
+        !std::is_same_v<T, unsigned long long> &&
+        (sizeof(T) >= sizeof(long double) || sizeof(T) >= sizeof(long long))) {
+    std::string encoded;
+    loadValue(encoded);
+    stringToNumber(encoded, val);
   }
 
   void loadSize(size_type& size) {
