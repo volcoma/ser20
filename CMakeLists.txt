@@ -17,7 +17,15 @@ endif()
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(SER20_SOURCES "src/ser20.cpp" "src/polymorphic_impl.cpp")
+#set(SER20_SOURCES "src/ser20.cpp" "src/polymorphic_impl.cpp")
+file(GLOB_RECURSE SER20_SOURCES
+    include/*.h
+    include/*.hpp
+    include/*.cpp
+    src/*.cpp
+    src/*.c
+    src/*.cc)
+
 add_library(ser20 ${SER20_SOURCES})
 add_library(ser20::ser20 ALIAS ser20)
 
