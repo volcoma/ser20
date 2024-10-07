@@ -30,8 +30,8 @@
 #ifndef SER20_ARCHIVES_SIMDJSON_HPP_
 #define SER20_ARCHIVES_SIMDJSON_HPP_
 
-#include "ser20/ser20.hpp"
 #include "ser20/details/util.hpp"
+#include "ser20/ser20.hpp"
 
 #include "ser20/external/base64.hpp"
 #include "ser20/external/rapidjson/document.h"
@@ -40,15 +40,15 @@
 #include "ser20/external/rapidjson/prettywriter.h"
 #include "ser20/external/simdjson/simdjson.h"
 
+#include <fstream>
 #include <limits>
 #include <sstream>
-#include <fstream>
 #include <stack>
 #include <string>
 #include <vector>
 
 namespace ser20 {
-namespace simd{
+namespace simd {
 // ######################################################################
 //! An output archive designed to save data to JSON
 /*! This archive uses RapidJSON to build serialize data to JSON.
@@ -238,13 +238,16 @@ public:
   void saveValue(std::nullptr_t) { itsWriter.Null(); }
 
   template <class T>
-  inline void saveValue(T val) requires(!std::is_same_v<T, int64_t> &&
-                                        std::is_same_v<T, long long>) {
+  inline void saveValue(T val)
+    requires(!std::is_same_v<T, int64_t> && std::is_same_v<T, long long>)
+  {
     itsWriter.Int64(val);
   }
   template <class T>
-  inline void saveValue(T val) requires(!std::is_same_v<T, uint64_t> &&
-                                        std::is_same_v<T, unsigned long long>) {
+  inline void saveValue(T val)
+    requires(!std::is_same_v<T, uint64_t> &&
+             std::is_same_v<T, unsigned long long>)
+  {
     itsWriter.Uint64(val);
   }
 
@@ -254,29 +257,33 @@ private:
 
   //! 32 bit signed long saving to current node
   template <class T>
-  inline void saveLong(T l) requires(sizeof(T) == sizeof(std::int32_t) &&
-                                     std::is_signed_v<T>) {
+  inline void saveLong(T l)
+    requires(sizeof(T) == sizeof(std::int32_t) && std::is_signed_v<T>)
+  {
     saveValue(static_cast<std::int32_t>(l));
   }
 
   //! non 32 bit signed long saving to current node
   template <class T>
-  inline void saveLong(T l) requires(sizeof(T) != sizeof(std::int32_t) &&
-                                     std::is_signed_v<T>) {
+  inline void saveLong(T l)
+    requires(sizeof(T) != sizeof(std::int32_t) && std::is_signed_v<T>)
+  {
     saveValue(static_cast<std::int64_t>(l));
   }
 
   //! 32 bit unsigned long saving to current node
   template <class T>
-  inline void saveLong(T lu) requires(sizeof(T) == sizeof(std::int32_t) &&
-                                      std::is_unsigned_v<T>) {
+  inline void saveLong(T lu)
+    requires(sizeof(T) == sizeof(std::int32_t) && std::is_unsigned_v<T>)
+  {
     saveValue(static_cast<std::uint32_t>(lu));
   }
 
   //! non 32 bit unsigned long saving to current node
   template <class T>
-  inline void saveLong(T lu) requires(sizeof(T) != sizeof(std::int32_t) &&
-                                      std::is_unsigned_v<T>) {
+  inline void saveLong(T lu)
+    requires(sizeof(T) != sizeof(std::int32_t) && std::is_unsigned_v<T>)
+  {
     saveValue(static_cast<std::uint64_t>(lu));
   }
 
@@ -287,17 +294,19 @@ public:
 #else  // _MSC_VER
        //! Serialize a long if it would not be caught otherwise
   template <class T>
-  inline void saveValue(T t) requires(std::is_same_v<T, long> &&
-                                      !std::is_same_v<T, int> &&
-                                      !std::is_same_v<T, std::int64_t>) {
+  inline void saveValue(T t)
+    requires(std::is_same_v<T, long> && !std::is_same_v<T, int> &&
+             !std::is_same_v<T, std::int64_t>)
+  {
     saveLong(t);
   }
 
   //! Serialize an unsigned long if it would not be caught otherwise
   template <class T>
-  inline void saveValue(T t) requires(std::is_same_v<T, unsigned long> &&
-                                      !std::is_same_v<T, unsigned> &&
-                                      !std::is_same_v<T, std::uint64_t>) {
+  inline void saveValue(T t)
+    requires(std::is_same_v<T, unsigned long> && !std::is_same_v<T, unsigned> &&
+             !std::is_same_v<T, std::uint64_t>)
+  {
     saveLong(t);
   }
 #endif // _MSC_VER
@@ -306,12 +315,14 @@ public:
   /*! Handles long long (if distinct from other types), unsigned long (if
    * distinct), and long double */
   template <class T>
-  inline void saveValue(T const& t) requires(
-      std::is_arithmetic_v<T> && !std::is_same_v<T, long> &&
-      !std::is_same_v<T, unsigned long> && !std::is_same_v<T, std::int64_t> &&
-      !std::is_same_v<T, std::uint64_t> && !std::is_same_v<T, long long> &&
-      !std::is_same_v<T, unsigned long long> &&
-      (sizeof(T) >= sizeof(long double) || sizeof(T) >= sizeof(long long))) {
+  inline void saveValue(T const& t)
+    requires(
+        std::is_arithmetic_v<T> && !std::is_same_v<T, long> &&
+        !std::is_same_v<T, unsigned long> && !std::is_same_v<T, std::int64_t> &&
+        !std::is_same_v<T, std::uint64_t> && !std::is_same_v<T, long long> &&
+        !std::is_same_v<T, unsigned long long> &&
+        (sizeof(T) >= sizeof(long double) || sizeof(T) >= sizeof(long long)))
+  {
     std::stringstream ss;
     ss.precision(std::numeric_limits<long double>::max_digits10);
     ss << t;
@@ -434,31 +445,34 @@ public:
 
     auto error = itsParser.parse(view).get(itsDocument);
     if (error) {
-      throw ser20::Exception("Failed to parse JSON: " + std::string(error_message(error)));
+      throw ser20::Exception("Failed to parse JSON: " +
+                             std::string(error_message(error)));
     }
 
     Init();
   }
 
-  JSONInputArchive(const uint8_t *buf, size_t len)
+  JSONInputArchive(const uint8_t* buf, size_t len)
       : InputArchive<JSONInputArchive>(this), itsNextName(nullptr) {
 
     // Parse the JSON string using simdjson
     auto error = itsParser.parse(buf, len).get(itsDocument);
     if (error) {
-      throw ser20::Exception("Failed to parse JSON: " + std::string(error_message(error)));
+      throw ser20::Exception("Failed to parse JSON: " +
+                             std::string(error_message(error)));
     }
 
     Init();
   }
 
-  JSONInputArchive(const char *buf, size_t len)
+  JSONInputArchive(const char* buf, size_t len)
       : InputArchive<JSONInputArchive>(this), itsNextName(nullptr) {
 
     // Parse the JSON string using simdjson
     auto error = itsParser.parse(buf, len).get(itsDocument);
     if (error) {
-      throw ser20::Exception("Failed to parse JSON: " + std::string(error_message(error)));
+      throw ser20::Exception("Failed to parse JSON: " +
+                             std::string(error_message(error)));
     }
 
     Init();
@@ -466,8 +480,7 @@ public:
 
   ~JSONInputArchive() noexcept = default;
 
-  void Init()
-  {
+  void Init() {
     // Initialize the iterator stack
     if (itsDocument.is_array()) {
       auto arr = itsDocument.get_array().value();
@@ -500,7 +513,7 @@ private:
   public:
     Iterator() : itsType(Type::Null_) {}
 
-           // Object iterator constructor
+    // Object iterator constructor
     Iterator(ObjectIterator begin, ObjectIterator end)
         : itsObjectItBegin(begin), itsObjectItEnd(end),
           itsObjectItCurrent(begin), itsType(Type::Object) {
@@ -508,15 +521,15 @@ private:
         itsType = Type::Null_;
     }
 
-           // Array iterator constructor
+    // Array iterator constructor
     Iterator(ArrayIterator begin, ArrayIterator end)
-        : itsArrayItBegin(begin), itsArrayItEnd(end),
-          itsArrayItCurrent(begin), itsType(Type::Array) {
+        : itsArrayItBegin(begin), itsArrayItEnd(end), itsArrayItCurrent(begin),
+          itsType(Type::Array) {
       if (itsArrayItCurrent == itsArrayItEnd)
         itsType = Type::Null_;
     }
 
-           // Advance to the next node
+    // Advance to the next node
     Iterator& operator++() {
       if (itsType == Type::Array) {
         if (itsArrayItCurrent != itsArrayItEnd)
@@ -528,7 +541,7 @@ private:
       return *this;
     }
 
-           // Get the value of the current node
+    // Get the value of the current node
     JSONElement value() {
       if ((itsType == Type::Array && itsArrayItCurrent == itsArrayItEnd) ||
           (itsType == Type::Object && itsObjectItCurrent == itsObjectItEnd)) {
@@ -541,11 +554,12 @@ private:
       case Type::Object:
         return itsObjectItCurrent.value();
       default:
-        throw ser20::Exception("JSONInputArchive internal error: null or empty iterator to object or array!");
+        throw ser20::Exception("JSONInputArchive internal error: null or empty "
+                               "iterator to object or array!");
       }
     }
 
-           // Get the name of the current node, or nullptr if it has no name
+    // Get the name of the current node, or nullptr if it has no name
     const char* name() const {
       if (itsType == Type::Object && itsObjectItCurrent != itsObjectItEnd)
         return itsObjectItCurrent.key_c_str();
@@ -553,10 +567,11 @@ private:
         return nullptr;
     }
 
-           // Adjust our position such that we are at the node with the given name
+    // Adjust our position such that we are at the node with the given name
     void search(const char* searchName) {
       if (itsType != Type::Object) {
-        throw ser20::Exception("Cannot search for a name in a non-object JSON node");
+        throw ser20::Exception(
+            "Cannot search for a name in a non-object JSON node");
       }
 
       itsObjectItCurrent = itsObjectItBegin; // Reset iterator to beginning
@@ -567,10 +582,11 @@ private:
         ++itsObjectItCurrent;
       }
 
-      throw Exception("JSON Parsing failed - provided NVP (" + std::string(searchName) + ") not found");
+      throw Exception("JSON Parsing failed - provided NVP (" +
+                      std::string(searchName) + ") not found");
     }
 
-           // Check if iterator is valid (not at end)
+    // Check if iterator is valid (not at end)
     bool isValid() const {
       if (itsType == Type::Array)
         return itsArrayItCurrent != itsArrayItEnd;
@@ -599,7 +615,8 @@ public:
       auto obj = currentValue.get_object().value();
       itsIteratorStack.emplace_back(obj.begin(), obj.end());
     } else {
-      throw ser20::Exception("Current JSON node is neither an array nor an object");
+      throw ser20::Exception(
+          "Current JSON node is neither an array nor an object");
     }
   }
 
@@ -615,26 +632,28 @@ public:
 
   //! Loads a value from the current node - small signed overload
   template <class T>
-  inline void loadValue(T& val) requires(std::is_signed_v<T> &&
-             sizeof(T) < sizeof(int64_t)) {
+  inline void loadValue(T& val)
+    requires(std::is_signed_v<T> && sizeof(T) < sizeof(int64_t))
+  {
     search();
 
     val = static_cast<T>(itsIteratorStack.back().value().get_int64().value());
     ++itsIteratorStack.back();
   }
 
-         //! Loads a value from the current node - small unsigned overload
+  //! Loads a value from the current node - small unsigned overload
   template <class T>
-  inline void loadValue(T& val) requires(std::is_unsigned_v<T> &&
-             sizeof(T) < sizeof(uint64_t) &&
-             !std::is_same_v<bool, T>) {
+  inline void loadValue(T& val)
+    requires(std::is_unsigned_v<T> && sizeof(T) < sizeof(uint64_t) &&
+             !std::is_same_v<bool, T>)
+  {
     search();
 
     val = static_cast<T>(itsIteratorStack.back().value().get_uint64().value());
     ++itsIteratorStack.back();
   }
 
-         //! Loads a value from the current node - bool overload
+  //! Loads a value from the current node - bool overload
   void loadValue(bool& val) {
     search();
     val = itsIteratorStack.back().value().get_bool().value();
@@ -655,7 +674,8 @@ public:
   //! Loads a value from the current node - float overload
   void loadValue(float& val) {
     search();
-    val = static_cast<float>(itsIteratorStack.back().value().get_double().value());
+    val = static_cast<float>(
+        itsIteratorStack.back().value().get_double().value());
     ++itsIteratorStack.back();
   }
   //! Loads a value from the current node - double overload
@@ -678,16 +698,18 @@ public:
   }
 
   template <class T>
-  inline void loadValue(T& val) requires(!std::is_same_v<T, int64_t> &&
-             std::is_same_v<T, long long>) {
+  inline void loadValue(T& val)
+    requires(!std::is_same_v<T, int64_t> && std::is_same_v<T, long long>)
+  {
     search();
     val = itsIteratorStack.back().value().get_int64().value();
     ++itsIteratorStack.back();
   }
   template <class T>
-  inline void
-  loadValue(T& val) requires(!std::is_same_v<T, uint64_t> &&
-             std::is_same_v<T, unsigned long long>) {
+  inline void loadValue(T& val)
+    requires(!std::is_same_v<T, uint64_t> &&
+             std::is_same_v<T, unsigned long long>)
+  {
     search();
     val = itsIteratorStack.back().value().get_uint64().value();
     ++itsIteratorStack.back();
@@ -699,46 +721,53 @@ public:
 private:
   //! 32 bit signed long loading from current node
   template <class T>
-  inline void loadLong(T& l) requires(sizeof(T) == sizeof(std::int32_t) &&
-             std::is_signed_v<T>) {
+  inline void loadLong(T& l)
+    requires(sizeof(T) == sizeof(std::int32_t) && std::is_signed_v<T>)
+  {
     loadValue(reinterpret_cast<std::int32_t&>(l));
   }
 
-         //! non 32 bit signed long loading from current node
+  //! non 32 bit signed long loading from current node
   template <class T>
-  inline void loadLong(T& l) requires(sizeof(T) == sizeof(std::int64_t) &&
-             std::is_signed_v<T>) {
+  inline void loadLong(T& l)
+    requires(sizeof(T) == sizeof(std::int64_t) && std::is_signed_v<T>)
+  {
     loadValue(reinterpret_cast<std::int64_t&>(l));
   }
 
-         //! 32 bit unsigned long loading from current node
+  //! 32 bit unsigned long loading from current node
   template <class T>
-  inline void loadLong(T& lu) requires(sizeof(T) == sizeof(std::uint32_t) &&
-             !std::is_signed_v<T>) {
+  inline void loadLong(T& lu)
+    requires(sizeof(T) == sizeof(std::uint32_t) && !std::is_signed_v<T>)
+  {
     loadValue(reinterpret_cast<std::uint32_t&>(lu));
   }
 
-         //! non 32 bit unsigned long loading from current node
+  //! non 32 bit unsigned long loading from current node
   template <class T>
-  inline void loadLong(T& lu) requires(sizeof(T) == sizeof(std::uint64_t) &&
-             !std::is_signed_v<T>) {
+  inline void loadLong(T& lu)
+    requires(sizeof(T) == sizeof(std::uint64_t) && !std::is_signed_v<T>)
+  {
     loadValue(reinterpret_cast<std::uint64_t&>(lu));
   }
 
 public:
   //! Serialize a long if it would not be caught otherwise
   template <class T>
-  inline void loadValue(T& t) requires(std::is_same_v<T, long> &&
-             sizeof(T) >= sizeof(std::int64_t) &&
-             !std::is_same_v<T, std::int64_t>) {
+  inline void loadValue(T& t)
+    requires(std::is_same_v<T, long> && sizeof(T) >= sizeof(std::int64_t) &&
+             !std::is_same_v<T, std::int64_t>)
+  {
     loadLong(t);
   }
 
-         //! Serialize an unsigned long if it would not be caught otherwise
+  //! Serialize an unsigned long if it would not be caught otherwise
   template <class T>
-  inline void loadValue(T& t) requires(std::is_same_v<T, unsigned long> &&
+  inline void loadValue(T& t)
+    requires(std::is_same_v<T, unsigned long> &&
              sizeof(T) >= sizeof(std::uint64_t) &&
-             !std::is_same_v<T, std::uint64_t>) {
+             !std::is_same_v<T, std::uint64_t>)
+  {
     loadLong(t);
   }
 #endif // _MSC_VER
@@ -760,12 +789,14 @@ private:
 public:
   //! Loads a value from the current node - long double and long long overloads
   template <class T>
-  inline void loadValue(T& val) requires(
+  inline void loadValue(T& val)
+    requires(
         std::is_arithmetic_v<T> && !std::is_same_v<T, long> &&
         !std::is_same_v<T, unsigned long> && !std::is_same_v<T, std::int64_t> &&
         !std::is_same_v<T, std::uint64_t> && !std::is_same_v<T, long long> &&
         !std::is_same_v<T, unsigned long long> &&
-        (sizeof(T) >= sizeof(long double) || sizeof(T) >= sizeof(long long))) {
+        (sizeof(T) >= sizeof(long double) || sizeof(T) >= sizeof(long long)))
+  {
     std::string encoded;
     loadValue(encoded);
     stringToNumber(encoded, val);
@@ -785,7 +816,8 @@ public:
       } else if (parentValue.is_object()) {
         size = parentValue.get_object().value().size();
       } else {
-        throw ser20::Exception("Parent JSON node is neither an array nor an object");
+        throw ser20::Exception(
+            "Parent JSON node is neither an array nor an object");
       }
     }
   }
@@ -810,7 +842,6 @@ private:
   std::vector<Iterator> itsIteratorStack;
 };
 
-
 // ######################################################################
 // JSONArchive prologue and epilogue functions
 // ######################################################################
@@ -820,50 +851,50 @@ private:
 /*! NVPs do not start or finish nodes - they just set up the names */
 template <class T>
 SER20_HIDE_FUNCTION inline void prologue(JSONOutputArchive&,
-                                          NameValuePair<T> const&) {}
+                                         NameValuePair<T> const&) {}
 
 //! Prologue for NVPs for JSON archives
 template <class T>
 SER20_HIDE_FUNCTION inline void prologue(JSONInputArchive&,
-                                          NameValuePair<T> const&) {}
+                                         NameValuePair<T> const&) {}
 
 // ######################################################################
 //! Epilogue for NVPs for JSON archives
 /*! NVPs do not start or finish nodes - they just set up the names */
 template <class T>
 SER20_HIDE_FUNCTION inline void epilogue(JSONOutputArchive&,
-                                          NameValuePair<T> const&) {}
+                                         NameValuePair<T> const&) {}
 
 //! Epilogue for NVPs for JSON archives
 /*! NVPs do not start or finish nodes - they just set up the names */
 template <class T>
 SER20_HIDE_FUNCTION inline void epilogue(JSONInputArchive&,
-                                          NameValuePair<T> const&) {}
+                                         NameValuePair<T> const&) {}
 
 // ######################################################################
 //! Prologue for deferred data for JSON archives
 /*! Do nothing for the defer wrapper */
 template <class T>
 SER20_HIDE_FUNCTION inline void prologue(JSONOutputArchive&,
-                                          DeferredData<T> const&) {}
+                                         DeferredData<T> const&) {}
 
 //! Prologue for deferred data for JSON archives
 template <class T>
 SER20_HIDE_FUNCTION inline void prologue(JSONInputArchive&,
-                                          DeferredData<T> const&) {}
+                                         DeferredData<T> const&) {}
 
 // ######################################################################
 //! Epilogue for deferred for JSON archives
 /*! NVPs do not start or finish nodes - they just set up the names */
 template <class T>
 SER20_HIDE_FUNCTION inline void epilogue(JSONOutputArchive&,
-                                          DeferredData<T> const&) {}
+                                         DeferredData<T> const&) {}
 
 //! Epilogue for deferred for JSON archives
 /*! Do nothing for the defer wrapper */
 template <class T>
 SER20_HIDE_FUNCTION inline void epilogue(JSONInputArchive&,
-                                          DeferredData<T> const&) {}
+                                         DeferredData<T> const&) {}
 
 // ######################################################################
 //! Prologue for SizeTags for JSON archives
@@ -871,26 +902,26 @@ SER20_HIDE_FUNCTION inline void epilogue(JSONInputArchive&,
     that the current node should be made into an array */
 template <class T>
 SER20_HIDE_FUNCTION inline void prologue(JSONOutputArchive& ar,
-                                          SizeTag<T> const&) {
+                                         SizeTag<T> const&) {
   ar.makeArray();
 }
 
 //! Prologue for SizeTags for JSON archives
 template <class T>
-SER20_HIDE_FUNCTION inline void prologue(JSONInputArchive&,
-                                          SizeTag<T> const&) {}
+SER20_HIDE_FUNCTION inline void prologue(JSONInputArchive&, SizeTag<T> const&) {
+}
 
 // ######################################################################
 //! Epilogue for SizeTags for JSON archives
 /*! SizeTags are strictly ignored for JSON */
 template <class T>
 SER20_HIDE_FUNCTION inline void epilogue(JSONOutputArchive&,
-                                          SizeTag<T> const&) {}
+                                         SizeTag<T> const&) {}
 
 //! Epilogue for SizeTags for JSON archives
 template <class T>
-SER20_HIDE_FUNCTION inline void epilogue(JSONInputArchive&,
-                                          SizeTag<T> const&) {}
+SER20_HIDE_FUNCTION inline void epilogue(JSONInputArchive&, SizeTag<T> const&) {
+}
 
 // ######################################################################
 //! Prologue for all other types for JSON archives (except minimal types)
@@ -899,24 +930,26 @@ SER20_HIDE_FUNCTION inline void epilogue(JSONInputArchive&,
 
     Minimal types do not start or finish nodes */
 template <class T>
-SER20_HIDE_FUNCTION inline void
-prologue(JSONOutputArchive& ar, T const&) requires(
-    !std::is_arithmetic_v<T> &&
-    !traits::has_minimal_base_class_serialization<
-        T, traits::has_minimal_output_serialization,
-        JSONOutputArchive>::value &&
-    !traits::has_minimal_output_serialization<T, JSONOutputArchive>::value) {
+SER20_HIDE_FUNCTION inline void prologue(JSONOutputArchive& ar, T const&)
+  requires(
+      !std::is_arithmetic_v<T> &&
+      !traits::has_minimal_base_class_serialization<
+          T, traits::has_minimal_output_serialization,
+          JSONOutputArchive>::value &&
+      !traits::has_minimal_output_serialization<T, JSONOutputArchive>::value)
+{
   ar.startNode();
 }
 
 //! Prologue for all other types for JSON archives
 template <class T>
-SER20_HIDE_FUNCTION inline void
-prologue(JSONInputArchive& ar, T const&) requires(
-    !std::is_arithmetic_v<T> &&
-    !traits::has_minimal_base_class_serialization<
-        T, traits::has_minimal_input_serialization, JSONInputArchive>::value &&
-    !traits::has_minimal_input_serialization<T, JSONInputArchive>::value) {
+SER20_HIDE_FUNCTION inline void prologue(JSONInputArchive& ar, T const&)
+  requires(!std::is_arithmetic_v<T> &&
+           !traits::has_minimal_base_class_serialization<
+               T, traits::has_minimal_input_serialization,
+               JSONInputArchive>::value &&
+           !traits::has_minimal_input_serialization<T, JSONInputArchive>::value)
+{
   ar.startNode();
 }
 
@@ -927,70 +960,76 @@ prologue(JSONInputArchive& ar, T const&) requires(
 
     Minimal types do not start or finish nodes */
 template <class T>
-SER20_HIDE_FUNCTION inline void
-epilogue(JSONOutputArchive& ar, T const&) requires(
-    !std::is_arithmetic_v<T> &&
-    !traits::has_minimal_base_class_serialization<
-        T, traits::has_minimal_output_serialization,
-        JSONOutputArchive>::value &&
-    !traits::has_minimal_output_serialization<T, JSONOutputArchive>::value) {
+SER20_HIDE_FUNCTION inline void epilogue(JSONOutputArchive& ar, T const&)
+  requires(
+      !std::is_arithmetic_v<T> &&
+      !traits::has_minimal_base_class_serialization<
+          T, traits::has_minimal_output_serialization,
+          JSONOutputArchive>::value &&
+      !traits::has_minimal_output_serialization<T, JSONOutputArchive>::value)
+{
   ar.finishNode();
 }
 
 //! Epilogue for all other types other for JSON archives
 template <class T>
-SER20_HIDE_FUNCTION inline void
-epilogue(JSONInputArchive& ar, T const&) requires(
-    !std::is_arithmetic_v<T> &&
-    !traits::has_minimal_base_class_serialization<
-        T, traits::has_minimal_input_serialization, JSONInputArchive>::value &&
-    !traits::has_minimal_input_serialization<T, JSONInputArchive>::value) {
+SER20_HIDE_FUNCTION inline void epilogue(JSONInputArchive& ar, T const&)
+  requires(!std::is_arithmetic_v<T> &&
+           !traits::has_minimal_base_class_serialization<
+               T, traits::has_minimal_input_serialization,
+               JSONInputArchive>::value &&
+           !traits::has_minimal_input_serialization<T, JSONInputArchive>::value)
+{
   ar.finishNode();
 }
 
 // ######################################################################
 //! Prologue for arithmetic types for JSON archives
 SER20_HIDE_FUNCTION inline void prologue(JSONOutputArchive& ar,
-                                          std::nullptr_t const&) {
+                                         std::nullptr_t const&) {
   ar.writeName();
 }
 
 //! Prologue for arithmetic types for JSON archives
 SER20_HIDE_FUNCTION inline void prologue(JSONInputArchive&,
-                                          std::nullptr_t const&) {}
+                                         std::nullptr_t const&) {}
 
 // ######################################################################
 //! Epilogue for arithmetic types for JSON archives
 SER20_HIDE_FUNCTION inline void epilogue(JSONOutputArchive&,
-                                          std::nullptr_t const&) {}
+                                         std::nullptr_t const&) {}
 
 //! Epilogue for arithmetic types for JSON archives
 SER20_HIDE_FUNCTION inline void epilogue(JSONInputArchive&,
-                                          std::nullptr_t const&) {}
+                                         std::nullptr_t const&) {}
 
 // ######################################################################
 //! Prologue for arithmetic types for JSON archives
 template <class T>
-SER20_HIDE_FUNCTION inline void
-prologue(JSONOutputArchive& ar, T const&) requires(std::is_arithmetic_v<T>) {
+SER20_HIDE_FUNCTION inline void prologue(JSONOutputArchive& ar, T const&)
+  requires(std::is_arithmetic_v<T>)
+{
   ar.writeName();
 }
 
 //! Prologue for arithmetic types for JSON archives
 template <class T>
-SER20_HIDE_FUNCTION inline void
-prologue(JSONInputArchive&, T const&) requires(std::is_arithmetic_v<T>) {}
+SER20_HIDE_FUNCTION inline void prologue(JSONInputArchive&, T const&)
+  requires(std::is_arithmetic_v<T>)
+{}
 
 // ######################################################################
 //! Epilogue for arithmetic types for JSON archives
 template <class T>
-SER20_HIDE_FUNCTION inline void
-epilogue(JSONOutputArchive&, T const&) requires(std::is_arithmetic_v<T>) {}
+SER20_HIDE_FUNCTION inline void epilogue(JSONOutputArchive&, T const&)
+  requires(std::is_arithmetic_v<T>)
+{}
 
 //! Epilogue for arithmetic types for JSON archives
 template <class T>
-SER20_HIDE_FUNCTION inline void
-epilogue(JSONInputArchive&, T const&) requires(std::is_arithmetic_v<T>) {}
+SER20_HIDE_FUNCTION inline void epilogue(JSONInputArchive&, T const&)
+  requires(std::is_arithmetic_v<T>)
+{}
 
 // ######################################################################
 //! Prologue for strings for JSON archives
@@ -1023,14 +1062,14 @@ epilogue(JSONInputArchive&, std::basic_string<CharT, Traits, Alloc> const&) {}
 //! Serializing NVP types to JSON
 template <class T>
 inline void SER20_SAVE_FUNCTION_NAME(JSONOutputArchive& ar,
-                                      NameValuePair<T> const& t) {
+                                     NameValuePair<T> const& t) {
   ar.setNextName(t.name);
   ar(t.value);
 }
 
 template <class T>
 inline void SER20_LOAD_FUNCTION_NAME(JSONInputArchive& ar,
-                                      NameValuePair<T>& t) {
+                                     NameValuePair<T>& t) {
   ar.setNextName(t.name);
   ar(t.value);
 }
@@ -1043,23 +1082,25 @@ SER20_SAVE_FUNCTION_NAME(JSONOutputArchive& ar, std::nullptr_t const& t) {
 
 //! Loading arithmetic from JSON
 SER20_HIDE_FUNCTION inline void SER20_LOAD_FUNCTION_NAME(JSONInputArchive& ar,
-                                                           std::nullptr_t& t) {
+                                                         std::nullptr_t& t) {
   ar.loadValue(t);
 }
 
 //! Saving for arithmetic to JSON
 template <class T>
-SER20_HIDE_FUNCTION inline void
-SER20_SAVE_FUNCTION_NAME(JSONOutputArchive& ar,
-                          T const& t) requires(std::is_arithmetic_v<T>) {
+SER20_HIDE_FUNCTION inline void SER20_SAVE_FUNCTION_NAME(JSONOutputArchive& ar,
+                                                         T const& t)
+  requires(std::is_arithmetic_v<T>)
+{
   ar.saveValue(t);
 }
 
 //! Loading arithmetic from JSON
 template <class T>
-SER20_HIDE_FUNCTION inline void
-SER20_LOAD_FUNCTION_NAME(JSONInputArchive& ar,
-                          T& t) requires(std::is_arithmetic_v<T>) {
+SER20_HIDE_FUNCTION inline void SER20_LOAD_FUNCTION_NAME(JSONInputArchive& ar,
+                                                         T& t)
+  requires(std::is_arithmetic_v<T>)
+{
   ar.loadValue(t);
 }
 
@@ -1067,7 +1108,7 @@ SER20_LOAD_FUNCTION_NAME(JSONInputArchive& ar,
 template <class CharT, class Traits, class Alloc>
 SER20_HIDE_FUNCTION inline void
 SER20_SAVE_FUNCTION_NAME(JSONOutputArchive& ar,
-                          std::basic_string<CharT, Traits, Alloc> const& str) {
+                         std::basic_string<CharT, Traits, Alloc> const& str) {
   ar.saveValue(str);
 }
 
@@ -1075,7 +1116,7 @@ SER20_SAVE_FUNCTION_NAME(JSONOutputArchive& ar,
 template <class CharT, class Traits, class Alloc>
 SER20_HIDE_FUNCTION inline void
 SER20_LOAD_FUNCTION_NAME(JSONInputArchive& ar,
-                          std::basic_string<CharT, Traits, Alloc>& str) {
+                         std::basic_string<CharT, Traits, Alloc>& str) {
   ar.loadValue(str);
 }
 
@@ -1083,21 +1124,22 @@ SER20_LOAD_FUNCTION_NAME(JSONInputArchive& ar,
 //! Saving SizeTags to JSON
 template <class T>
 SER20_HIDE_FUNCTION inline void SER20_SAVE_FUNCTION_NAME(JSONOutputArchive&,
-                                                           SizeTag<T> const&) {
+                                                         SizeTag<T> const&) {
   // nothing to do here, we don't explicitly save the size
 }
 
 //! Loading SizeTags from JSON
 template <class T>
 SER20_HIDE_FUNCTION inline void SER20_LOAD_FUNCTION_NAME(JSONInputArchive& ar,
-                                                           SizeTag<T>& st) {
+                                                         SizeTag<T>& st) {
   ar.loadSize(st.size);
 }
 } // namespace simd
 } // namespace ser20
 
 // tie input and output archives together
-SER20_SETUP_ARCHIVE_TRAITS(ser20::simd::JSONInputArchive, ser20::simd::JSONOutputArchive)
+SER20_SETUP_ARCHIVE_TRAITS(ser20::simd::JSONInputArchive,
+                           ser20::simd::JSONOutputArchive)
 
 // register archives for polymorphic support
 SER20_REGISTER_ARCHIVE(ser20::simd::JSONInputArchive)
