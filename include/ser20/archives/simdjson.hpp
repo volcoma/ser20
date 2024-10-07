@@ -42,6 +42,7 @@
 
 #include <limits>
 #include <sstream>
+#include <fstream>
 #include <stack>
 #include <string>
 #include <vector>
@@ -99,6 +100,11 @@ public:
     static Options NoIndent() {
       return Options(JSONWriter::kDefaultMaxDecimalPlaces, IndentChar::space,
                      0);
+    }
+
+    static Options SmallIndent() {
+      return Options(JSONWriter::kDefaultMaxDecimalPlaces, IndentChar::space,
+                     1);
     }
 
     //! The character to use for indenting
@@ -424,15 +430,45 @@ public:
     // Read the entire stream into a string
     std::stringstream ss;
     ss << stream.rdbuf();
-    json_str = ss.str();
+    auto view = ss.view();
 
-           // Parse the JSON string using simdjson
-    auto error = itsParser.parse(json_str).get(itsDocument);
+    auto error = itsParser.parse(view).get(itsDocument);
     if (error) {
       throw ser20::Exception("Failed to parse JSON: " + std::string(error_message(error)));
     }
 
-           // Initialize the iterator stack
+    Init();
+  }
+
+  JSONInputArchive(const uint8_t *buf, size_t len)
+      : InputArchive<JSONInputArchive>(this), itsNextName(nullptr) {
+
+    // Parse the JSON string using simdjson
+    auto error = itsParser.parse(buf, len).get(itsDocument);
+    if (error) {
+      throw ser20::Exception("Failed to parse JSON: " + std::string(error_message(error)));
+    }
+
+    Init();
+  }
+
+  JSONInputArchive(const char *buf, size_t len)
+      : InputArchive<JSONInputArchive>(this), itsNextName(nullptr) {
+
+    // Parse the JSON string using simdjson
+    auto error = itsParser.parse(buf, len).get(itsDocument);
+    if (error) {
+      throw ser20::Exception("Failed to parse JSON: " + std::string(error_message(error)));
+    }
+
+    Init();
+  }
+
+  ~JSONInputArchive() noexcept = default;
+
+  void Init()
+  {
+    // Initialize the iterator stack
     if (itsDocument.is_array()) {
       auto arr = itsDocument.get_array().value();
       itsIteratorStack.emplace_back(arr.begin(), arr.end());
@@ -443,8 +479,6 @@ public:
       throw ser20::Exception("JSON root element is not an object or array");
     }
   }
-
-  ~JSONInputArchive() noexcept = default;
 
   void loadBinaryValue(void* data, size_t size, const char* name = nullptr) {
     itsNextName = name;
@@ -773,7 +807,6 @@ private:
   const char* itsNextName;
   simdjson::dom::parser itsParser;
   simdjson::dom::element itsDocument;
-  std::string json_str;
   std::vector<Iterator> itsIteratorStack;
 };
 
