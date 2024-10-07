@@ -441,7 +441,7 @@ public:
     // Read the entire stream into a string
     std::stringstream ss;
     ss << stream.rdbuf();
-    auto view = ss.view();
+    auto view = ss.str();
 
     auto error = itsParser.parse(view).get(itsDocument);
     if (error) {
