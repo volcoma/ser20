@@ -428,6 +428,17 @@ private:
 
     \ingroup Archives */
 // JSONInputArchive using simdjson
+
+template<typename T>
+concept HasCharAndTraits = requires {
+  typename T::char_type;
+  typename T::traits_type;
+};
+template<typename T>
+concept HasView = HasCharAndTraits<T> && requires(const T& t) {
+  { t.view() } noexcept -> std::same_as<std::basic_string_view<typename T::char_type, typename T::traits_type>>;
+};
+
 class JSONInputArchive : public InputArchive<JSONInputArchive>,
                          public traits::TextArchive {
 private:
@@ -438,17 +449,13 @@ private:
 public:
   JSONInputArchive(std::istream& stream)
       : InputArchive<JSONInputArchive>(this), itsNextName(nullptr) {
-    // Read the entire stream into a string
-    std::stringstream ss;
-    ss << stream.rdbuf();
-    auto view = ss.str();
+    ParseStream(stream);
+    Init();
+  }
 
-    auto error = itsParser.parse(view).get(itsDocument);
-    if (error) {
-      throw ser20::Exception("Failed to parse JSON: " +
-                             std::string(error_message(error)));
-    }
-
+  JSONInputArchive(std::istringstream& stream)
+      : InputArchive<JSONInputArchive>(this), itsNextName(nullptr) {
+    ParseStream(stream);
     Init();
   }
 
@@ -456,11 +463,7 @@ public:
       : InputArchive<JSONInputArchive>(this), itsNextName(nullptr) {
 
     // Parse the JSON string using simdjson
-    auto error = itsParser.parse(buf, len).get(itsDocument);
-    if (error) {
-      throw ser20::Exception("Failed to parse JSON: " +
-                             std::string(error_message(error)));
-    }
+    ParseDocument(buf, len);
 
     Init();
   }
@@ -469,16 +472,53 @@ public:
       : InputArchive<JSONInputArchive>(this), itsNextName(nullptr) {
 
     // Parse the JSON string using simdjson
-    auto error = itsParser.parse(buf, len).get(itsDocument);
-    if (error) {
-      throw ser20::Exception("Failed to parse JSON: " +
-                             std::string(error_message(error)));
-    }
+    ParseDocument(buf, len);
 
     Init();
   }
 
   ~JSONInputArchive() noexcept = default;
+
+
+  template<typename Stream>
+  void ParseStream(Stream& stream) {
+    if constexpr (HasView<Stream>) {
+      // Use the view() method to get a string_view without copying
+      auto sv = stream.view();
+      // Use sv.data() and sv.size() with simdjson
+      ParseDocument(sv.data(), sv.size());
+      // Use 'doc' as needed
+    } else {
+      // Fallback method: read the stream into a string or buffer
+      std::stringstream buffer;
+      buffer << stream.rdbuf();
+      std::string data = buffer.str();
+
+      ParseDocument(data.data(), data.size());
+
+      // Use 'doc' as needed
+    }
+  }
+
+  void ParseDocument(const char* buf, size_t len)
+  {
+    // Parse the JSON string using simdjson
+    auto error = itsParser.parse(buf, len).get(itsDocument);
+    if (error) {
+      throw ser20::Exception("Failed to parse JSON: " +
+                             std::string(error_message(error)));
+    }
+  }
+
+  void ParseDocument(const uint8_t* buf, size_t len)
+  {
+      // Parse the JSON string using simdjson
+      auto error = itsParser.parse(buf, len).get(itsDocument);
+      if (error) {
+        throw ser20::Exception("Failed to parse JSON: " +
+                               std::string(error_message(error)));
+      }
+  }
 
   void Init() {
     // Initialize the iterator stack
