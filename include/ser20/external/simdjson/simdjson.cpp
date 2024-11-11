@@ -2734,7 +2734,7 @@ namespace details {
       obj.method(std::move(val));                                              \
       requires !requires { obj = std::move(val); };                            \
     };                                                                         \
-  };
+  }
 
 SIMDJSON_IMPL_CONCEPT(emplace_back, emplace_back);
 SIMDJSON_IMPL_CONCEPT(emplace, emplace);
