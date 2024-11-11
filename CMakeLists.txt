@@ -37,7 +37,7 @@ target_include_directories(ser20 SYSTEM PUBLIC
 if(MSVC)
     target_compile_options(ser20 PRIVATE /bigobj /W3 /WX)
 else()
-    target_compile_options(ser20 PRIVATE -Wall -Wextra -pedantic -Wshadow -Wold-style-cast)
+    target_compile_options(ser20 PRIVATE -Wall -Wextra -pedantic -Wshadow)# -Wold-style-cast)
     option(WITH_WERROR "Compile with '-Werror' C++ compiler flag" ON)
 
     if(WITH_WERROR)
